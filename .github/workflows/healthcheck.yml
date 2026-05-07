@@ -29,11 +29,9 @@ jobs:
 
       - name: Run healthcheck
         run: node scripts/healthcheck.mjs
-        working-directory: infrastructure/status-page
 
       - name: Commit history if changed
         run: |
-          cd infrastructure/status-page
           if git diff --quiet history/; then
             echo "No history changes — skipping commit"
             exit 0

@@ -3,8 +3,10 @@ name: deploy
 on:
   push:
     branches: [main]
-    paths:
-      - 'infrastructure/status-page/**'
+    paths-ignore:
+      - 'history/**'
+      - 'incidents/**'
+      - 'README.md'
   workflow_dispatch:
 
 concurrency:
@@ -23,22 +25,15 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: pnpm/action-setup@v4
-        with:
-          version: 10.32.1
-
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-          cache: pnpm
 
       - name: Install
-        run: pnpm install --frozen-lockfile
-        working-directory: infrastructure/status-page
+        run: npm install
 
       - name: Build Astro
-        run: pnpm build
-        working-directory: infrastructure/status-page
+        run: npm run build
 
       - name: Deploy to Cloudflare Pages
         uses: cloudflare/pages-action@v1
@@ -46,5 +41,5 @@ jobs:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           projectName: orkenta-status-page
-          directory: infrastructure/status-page/dist
+          directory: dist
           gitHubToken: ${{ secrets.GITHUB_TOKEN }}
