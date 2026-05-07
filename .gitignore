@@ -1,0 +1,9 @@
+node_modules/
+dist/
+.astro/
+*.log
+.DS_Store
+
+# .env (no aplica aquí pero por si acaso)
+.env
+.env.local

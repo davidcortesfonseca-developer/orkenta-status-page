@@ -1,0 +1,111 @@
+---
+import Layout from '../layouts/Layout.astro';
+import { loadAllIncidents } from '../lib/incidents';
+
+const incidents = loadAllIncidents();
+---
+
+<Layout title="Historial de incidentes" description="Lista cronológica de incidentes Orkenta resueltos y activos">
+  <h1>Historial de incidentes</h1>
+
+  {incidents.length === 0 && (
+    <p class="empty">Sin incidentes registrados todavía. ✨</p>
+  )}
+
+  <ul class="incidents">
+    {incidents.map((i) => (
+      <li class={`incident incident--${i.severity.toLowerCase()} ${i.resolved ? 'resolved' : 'active'}`}>
+        <div class="head">
+          <span class="severity">{i.severity}</span>
+          <h2>{i.title}</h2>
+          {i.resolved
+            ? <span class="status">Resuelto</span>
+            : <span class="status status--active">Activo</span>
+          }
+        </div>
+        <p class="meta">
+          <time datetime={i.started}>{new Date(i.started).toLocaleString('es-CO')}</time>
+          {i.resolved && <> · Resuelto <time datetime={i.resolved}>{new Date(i.resolved).toLocaleString('es-CO')}</time></>}
+          · Servicios: {i.services.join(', ')}
+        </p>
+        <details>
+          <summary>Ver detalle</summary>
+          <pre>{i.body}</pre>
+        </details>
+      </li>
+    ))}
+  </ul>
+</Layout>
+
+<style>
+  h1 {
+    font-family: var(--font-display);
+    font-size: clamp(2rem, 5vw, 3rem);
+    letter-spacing: -0.04em;
+  }
+  .empty {
+    color: var(--text-muted);
+    font-size: 1.125rem;
+    text-align: center;
+    padding: 4rem 0;
+  }
+  .incidents {
+    list-style: none;
+    padding: 0;
+  }
+  .incident {
+    background: var(--surface-raised);
+    border: 1px solid var(--surface-border);
+    border-radius: 0.75rem;
+    padding: 1.25rem;
+    margin-bottom: 1rem;
+  }
+  .incident.active { border-color: #FFB347; }
+  .head {
+    display: flex;
+    align-items: baseline;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+  }
+  .severity {
+    background: var(--text-muted);
+    color: var(--color-ink);
+    font-size: 0.75rem;
+    font-weight: 700;
+    padding: 0.125rem 0.5rem;
+    border-radius: 0.25rem;
+  }
+  .incident--p1 .severity { background: #EF4444; }
+  .incident--p2 .severity { background: #FFB347; }
+  .incident--p3 .severity { background: #60A5FA; }
+  .incident--p4 .severity { background: rgba(232, 241, 255, 0.48); }
+  h2 {
+    font-size: 1.125rem;
+    margin: 0;
+    flex: 1;
+  }
+  .status {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    border: 1px solid var(--surface-border);
+    padding: 0.125rem 0.5rem;
+    border-radius: 999px;
+  }
+  .status--active { color: #FFB347; border-color: #FFB347; }
+  .meta {
+    color: var(--text-muted);
+    font-size: 0.8125rem;
+    margin: 0.5rem 0 0;
+  }
+  details {
+    margin-top: 0.75rem;
+  }
+  summary { cursor: pointer; color: var(--color-ember); }
+  pre {
+    margin: 0.5rem 0 0;
+    white-space: pre-wrap;
+    font-family: inherit;
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+  }
+</style>

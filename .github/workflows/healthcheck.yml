@@ -1,0 +1,45 @@
+name: healthcheck
+
+on:
+  schedule:
+    # cada 5 min — GitHub Actions tiene un mínimo de ~5 min real
+    - cron: '*/5 * * * *'
+  workflow_dispatch:
+
+concurrency:
+  group: healthcheck
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  ping:
+    name: Ping all services
+    runs-on: ubuntu-latest
+    timeout-minutes: 4
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Run healthcheck
+        run: node scripts/healthcheck.mjs
+        working-directory: infrastructure/status-page
+
+      - name: Commit history if changed
+        run: |
+          cd infrastructure/status-page
+          if git diff --quiet history/; then
+            echo "No history changes — skipping commit"
+            exit 0
+          fi
+          git config user.name "orkenta-status-bot"
+          git config user.email "status-bot@orkenta-ia.com"
+          git add history/
+          git commit -m "chore(status): healthcheck $(date -u +%Y-%m-%dT%H:%MZ) [skip ci]"
+          git push

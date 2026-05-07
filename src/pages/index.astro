@@ -1,0 +1,133 @@
+---
+import Layout from '../layouts/Layout.astro';
+import ServiceStatus from '../components/ServiceStatus.astro';
+import UptimeBar from '../components/UptimeBar.astro';
+import IncidentBanner from '../components/IncidentBanner.astro';
+import { SERVICES, SITE } from '../config';
+import { loadLast90Days, currentStatusFor } from '../lib/history';
+import { loadActiveIncidents } from '../lib/incidents';
+
+const history = loadLast90Days();
+const incidents = loadActiveIncidents();
+
+// Estado global: si cualquier servicio P1 está down → "down"; si degradado → "degraded"; si todo OK → "operational"
+const overallStatus = ((): 'operational' | 'degraded' | 'down' | 'no-data' => {
+  let worst: 'operational' | 'degraded' | 'down' | 'no-data' = 'operational';
+  for (const svc of SERVICES) {
+    const status = currentStatusFor(history[svc.id] ?? []);
+    if (status === 'down' && svc.severity === 'P1') return 'down';
+    if (status === 'degraded' && (worst === 'operational' || worst === 'no-data')) worst = 'degraded';
+    if (status === 'no-data' && worst === 'operational') worst = 'no-data';
+  }
+  return worst;
+})();
+
+const overallLabel = {
+  operational: 'Todos los sistemas operacionales',
+  degraded: 'Algunos sistemas con degradación',
+  down: 'Incidente activo en sistemas críticos',
+  'no-data': 'Esperando primer healthcheck',
+}[overallStatus];
+
+const lastUpdate = new Date().toISOString();
+---
+
+<Layout>
+  <section class={`overall overall--${overallStatus}`}>
+    <div class="dot"></div>
+    <div>
+      <h1>{overallLabel}</h1>
+      <p class="last-update">
+        Última actualización: <time datetime={lastUpdate}>{new Date(lastUpdate).toLocaleString('es-CO')}</time>
+      </p>
+    </div>
+  </section>
+
+  <IncidentBanner incidents={incidents} />
+
+  <section class="services">
+    <h2>Servicios</h2>
+    {SERVICES.map((service) => (
+      <div class="service-row">
+        <ServiceStatus service={service} entries={history[service.id] ?? []} />
+        <UptimeBar entries={history[service.id] ?? []} daysToShow={90} />
+      </div>
+    ))}
+  </section>
+
+  <section class="footer-notes">
+    <h2>Cómo reportar un incidente</h2>
+    <ul>
+      <li>Email: <a href={`mailto:${SITE.contactEmail}`}>{SITE.contactEmail}</a> (todos los planes)</li>
+      <li>Slack canal compartido (clientes Scale)</li>
+      <li>WhatsApp directo (clientes Scale): coordinar en onboarding</li>
+    </ul>
+    <p class="muted">
+      Severidades: <strong>P1</strong> crítico (≤30 min Scale, ≤4h Growth) ·
+      <strong>P2</strong> alto (≤1h Scale, ≤4h Growth) ·
+      <strong>P3</strong> medio (≤4h Scale, ≤12h Growth) ·
+      <strong>P4</strong> bajo (≤24h Scale, ≤48h Growth).
+    </p>
+  </section>
+</Layout>
+
+<style>
+  .overall {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 1.5rem;
+    border-radius: 1rem;
+    background: var(--surface-raised);
+    border: 1px solid var(--surface-border);
+    margin: 0 0 2rem;
+  }
+  .overall--operational { border-color: #22C55E; background: rgba(34, 197, 94, 0.08); }
+  .overall--degraded { border-color: #FFB347; background: rgba(255, 179, 71, 0.08); }
+  .overall--down { border-color: #EF4444; background: rgba(239, 68, 68, 0.12); }
+  .overall .dot {
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: rgba(232, 241, 255, 0.48);
+    flex-shrink: 0;
+    box-shadow: 0 0 0 4px rgba(232, 241, 255, 0.08);
+  }
+  .overall--operational .dot { background: #22C55E; box-shadow: 0 0 0 4px rgba(34, 197, 94, 0.2); }
+  .overall--degraded .dot { background: #FFB347; box-shadow: 0 0 0 4px rgba(255, 179, 71, 0.2); }
+  .overall--down .dot { background: #EF4444; box-shadow: 0 0 0 4px rgba(239, 68, 68, 0.2); animation: pulse 2s ease-in-out infinite; }
+  @keyframes pulse {
+    0%, 100% { box-shadow: 0 0 0 4px rgba(239, 68, 68, 0.2); }
+    50% { box-shadow: 0 0 0 8px rgba(239, 68, 68, 0.05); }
+  }
+  h1 {
+    font-family: var(--font-display);
+    font-size: clamp(1.5rem, 4vw, 2.25rem);
+    margin: 0;
+    letter-spacing: -0.02em;
+  }
+  .last-update {
+    font-size: 0.875rem;
+    color: var(--text-muted);
+    margin: 0.25rem 0 0;
+  }
+  .services > h2,
+  .footer-notes > h2 {
+    font-family: var(--font-display);
+    font-size: 1.5rem;
+    letter-spacing: -0.02em;
+    margin: 2rem 0 1rem;
+  }
+  .service-row { margin-bottom: 1.5rem; }
+  .footer-notes ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+  }
+  .footer-notes li {
+    padding: 0.5rem 0;
+    border-bottom: 1px solid var(--surface-border);
+  }
+  .footer-notes li:last-child { border-bottom: none; }
+  .muted { color: var(--text-muted); font-size: 0.875rem; }
+</style>

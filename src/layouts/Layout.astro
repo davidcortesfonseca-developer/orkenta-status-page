@@ -1,0 +1,133 @@
+---
+import { SITE } from '../config';
+
+interface Props {
+  title?: string;
+  description?: string;
+}
+
+const { title, description } = Astro.props;
+const pageTitle = title ? `${title} · ${SITE.name} status` : `${SITE.name} status`;
+const pageDesc = description ?? SITE.description;
+---
+
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>{pageTitle}</title>
+  <meta name="description" content={pageDesc} />
+  <meta property="og:title" content={pageTitle} />
+  <meta property="og:description" content={pageDesc} />
+  <meta property="og:type" content="website" />
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+</head>
+<body>
+  <header class="site-head">
+    <a href="/" class="brand">
+      <span class="logo-mark">●</span>
+      <span class="logo-text">{SITE.name} status</span>
+    </a>
+    <nav>
+      <a href="/">Inicio</a>
+      <a href="/incidents">Historial</a>
+      <a href={SITE.appUrl}>Volver a la app</a>
+    </nav>
+  </header>
+  <main>
+    <slot />
+  </main>
+  <footer class="site-foot">
+    <p>
+      ¿Algún problema no listado? Escribe a <a href={`mailto:${SITE.contactEmail}`}>{SITE.contactEmail}</a>.
+    </p>
+    <p class="muted">
+      Esta página se actualiza cada 5 minutos automáticamente vía GitHub Actions cron.
+      No incluye autenticación — toda la data mostrada es pública por diseño.
+    </p>
+  </footer>
+</body>
+</html>
+
+<style is:global>
+  :root {
+    --color-ink: #0A0F1E;
+    --color-ember: #FF6B35;
+    --color-frost: #E8F1FF;
+    --surface-base: #0A0F1E;
+    --surface-raised: #10172A;
+    --surface-border: rgba(232, 241, 255, 0.12);
+    --surface-border-strong: rgba(232, 241, 255, 0.24);
+    --text-primary: #E8F1FF;
+    --text-secondary: rgba(232, 241, 255, 0.72);
+    --text-muted: rgba(232, 241, 255, 0.48);
+    --font-display: 'Editorial New', 'Tobias', 'EB Garamond', serif;
+    --font-body: 'Geist', 'Inter Tight', system-ui, sans-serif;
+  }
+  *, *::before, *::after { box-sizing: border-box; }
+  html { font-feature-settings: 'cv11', 'ss01'; }
+  body {
+    margin: 0;
+    background: var(--surface-base);
+    color: var(--text-primary);
+    font-family: var(--font-body);
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+  }
+  main {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 2rem clamp(1rem, 4vw, 3rem);
+  }
+  a { color: var(--color-ember); text-decoration: none; }
+  a:hover { color: #ff7d4d; }
+  a:focus-visible { outline: 2px solid var(--color-ember); outline-offset: 2px; }
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { transition: none !important; animation: none !important; }
+  }
+</style>
+
+<style>
+  .site-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem clamp(1rem, 4vw, 3rem);
+    border-bottom: 1px solid var(--surface-border);
+    background: rgba(10, 15, 30, 0.86);
+    position: sticky;
+    top: 0;
+    backdrop-filter: blur(8px);
+    z-index: 10;
+  }
+  .brand {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-weight: 600;
+    color: var(--text-primary);
+  }
+  .logo-mark {
+    color: var(--color-ember);
+    font-size: 1.5rem;
+    line-height: 1;
+  }
+  nav {
+    display: flex;
+    gap: 1.25rem;
+    font-size: 0.875rem;
+  }
+  nav a { color: var(--text-secondary); }
+  nav a:hover { color: var(--text-primary); }
+  .site-foot {
+    max-width: 1100px;
+    margin: 2rem auto 4rem;
+    padding: 0 clamp(1rem, 4vw, 3rem);
+    color: var(--text-secondary);
+    font-size: 0.875rem;
+    border-top: 1px solid var(--surface-border);
+    padding-top: 2rem;
+  }
+  .site-foot .muted { color: var(--text-muted); font-size: 0.8125rem; }
+</style>

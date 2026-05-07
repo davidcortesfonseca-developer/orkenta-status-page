@@ -1,0 +1,86 @@
+---
+import type { HealthCheckEntry } from '../lib/history';
+import { aggregateDaily } from '../lib/history';
+
+interface Props {
+  entries: HealthCheckEntry[];
+  daysToShow?: number;
+}
+
+const { entries, daysToShow = 90 } = Astro.props;
+const daily = aggregateDaily(entries);
+
+// Build the last N days array (rellenar gaps con sin-datos)
+const today = new Date();
+const days: Array<{ date: string; uptimePct: number | null; total: number }> = [];
+for (let i = daysToShow - 1; i >= 0; i--) {
+  const d = new Date(today);
+  d.setDate(d.getDate() - i);
+  const dateStr = d.toISOString().slice(0, 10);
+  const found = daily.find((x) => x.date === dateStr);
+  days.push({
+    date: dateStr,
+    uptimePct: found ? found.uptimePct : null,
+    total: found ? found.total : 0,
+  });
+}
+---
+
+<div class="uptime-bar" aria-label={`Uptime de los últimos ${daysToShow} días`}>
+  {days.map((d) => {
+    let cls = 'cell cell--no-data';
+    if (d.uptimePct === null) cls = 'cell cell--no-data';
+    else if (d.uptimePct >= 99.9) cls = 'cell cell--ok';
+    else if (d.uptimePct >= 95) cls = 'cell cell--degraded';
+    else cls = 'cell cell--down';
+    const tooltip =
+      d.uptimePct === null
+        ? `${d.date}: sin datos`
+        : `${d.date}: ${d.uptimePct.toFixed(2)}% (${d.total} checks)`;
+    return <span class={cls} title={tooltip} aria-label={tooltip}></span>;
+  })}
+</div>
+<div class="legend">
+  <span><i class="dot dot--ok"></i> Operacional</span>
+  <span><i class="dot dot--degraded"></i> Degradado</span>
+  <span><i class="dot dot--down"></i> Caído</span>
+  <span><i class="dot dot--no-data"></i> Sin datos</span>
+</div>
+
+<style>
+  .uptime-bar {
+    display: flex;
+    gap: 2px;
+    margin-top: 0.75rem;
+  }
+  .cell {
+    flex: 1;
+    height: 32px;
+    border-radius: 2px;
+    transition: transform 80ms cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  .cell:hover { transform: scaleY(1.15); }
+  .cell--ok { background: #22C55E; }
+  .cell--degraded { background: #FFB347; }
+  .cell--down { background: #EF4444; }
+  .cell--no-data { background: rgba(232, 241, 255, 0.08); }
+  .legend {
+    display: flex;
+    gap: 1rem;
+    margin-top: 0.5rem;
+    font-size: 0.75rem;
+    color: var(--text-muted, rgba(232, 241, 255, 0.48));
+  }
+  .dot {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    margin-right: 0.25rem;
+    vertical-align: middle;
+  }
+  .dot--ok { background: #22C55E; }
+  .dot--degraded { background: #FFB347; }
+  .dot--down { background: #EF4444; }
+  .dot--no-data { background: rgba(232, 241, 255, 0.08); }
+</style>
